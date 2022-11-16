@@ -1,35 +1,40 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Version } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Version, Session, Req, Res } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import * as svgCaptcha from 'svg-captcha'
 
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(private readonly userService: UserService) { }
 
-  @Post()
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.userService.create(createUserDto);
+  @Get('code')
+  createCode(@Req() req, @Res() res, @Session() session) {
+    const captcha = svgCaptcha.create({
+      size: 4,  //生成验证码位数
+      fontSize: 50,  //文字大小
+      width: 100,
+      height: 34,
+      background: '#cc9966'
+    })
+    session.code = captcha.text
+    res.type('image/svg+xml')
+    res.send(captcha.data)
   }
 
-  @Get()
-  @Version('1')
-  findAll() {
-    return this.userService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.userService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.userService.update(+id, updateUserDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.userService.remove(+id);
+  @Post('create')
+  createUser(@Body() Body, @Session() session) {
+    console.log(Body, session.code);
+    if (session.code.toLocaleLowerCase() === Body?.code?.toLocaleLowerCase()) {
+      return {
+        code: 200,
+        message: "验证码正确"
+      }
+    } else {
+      return {
+        code: 200,
+        message: "验证码错误"
+      }
+    }
   }
 }
